@@ -1,0 +1,24 @@
+# Sistema / temporales
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+
+# Blender backups/autosaves
+*.blend1
+*.blend2
+*.blend@
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node, por si luego se agrega viewer web
+node_modules/
+.next/
+dist/
+build/
+.env*
+!.env.example
