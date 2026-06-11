@@ -163,13 +163,22 @@ def butterfly():
     cyl('red rounded body',(0,0,.75),.32,1.05,'red',10,scale=(.88,.88,1),bevel=.03)
     sphere('big simple head',(0,-.02,1.45),.43,'skin',10,5,scale=(1.05,1,1.02)); sphere('left ear',(-.42,-.02,1.45),.10,'skin',8,4); sphere('right ear',(.42,-.02,1.45),.10,'skin',8,4)
     sphere('left black eye',(-.14,-.38,1.50),.055,'black',8,4,scale=(.65,.35,1.2)); sphere('right black eye',(.14,-.38,1.50),.055,'black',8,4,scale=(.65,.35,1.2))
-    # wings as flat polygons behind body, black border + orange inner panels
+    # wings as clean toy-like panels behind body: broad rounded silhouette, readable black border,
+    # inset orange panels, and a few large white dots (no tiny noisy details).
     for side,sgn in [('left',-1),('right',1)]:
-        outer=poly('black upper wing '+side,[(0,0),(.52,.34),(.72,.05),(.56,-.28),(.16,-.18)],'black',.035); outer.location=(sgn*.26,.18,1.08); outer.scale=(sgn,1,1)
-        inner=poly('orange upper wing '+side,[(.06,.02),(.43,.24),(.55,.04),(.41,-.17),(.14,-.10)],'orange',.04); inner.location=(sgn*.26,.15,1.08); inner.scale=(sgn,1,1)
-        outer2=poly('black lower wing '+side,[(0,0),(.42,.12),(.58,-.20),(.30,-.42),(.06,-.28)],'black',.035); outer2.location=(sgn*.25,.18,.78); outer2.scale=(sgn,1,1)
-        inner2=poly('orange lower wing '+side,[(.05,-.02),(.33,.08),(.45,-.18),(.25,-.31),(.10,-.22)],'orange',.04); inner2.location=(sgn*.25,.15,.78); inner2.scale=(sgn,1,1)
-        for xx,zz in [(sgn*.84,1.24),(sgn*.73,1.03),(sgn*.71,.70)]: sphere('white wing dot',(xx,.12,zz),.045,'white',6,3)
+        upper_outer=poly('rounded black upper wing '+side,[(0.00,-0.06),(.24,.34),(.58,.48),(.88,.26),(.96,-.04),(.73,-.31),(.29,-.28)],'black',.040)
+        upper_outer.location=(sgn*.20,.20,1.13); upper_outer.scale=(sgn,1,1)
+        upper_inner=poly('soft orange upper wing panel '+side,[(.10,-.04),(.30,.24),(.56,.34),(.76,.19),(.80,-.03),(.62,-.20),(.31,-.19)],'orange',.045)
+        upper_inner.location=(sgn*.20,.145,1.13); upper_inner.scale=(sgn,1,1)
+
+        lower_outer=poly('rounded black lower wing '+side,[(0.00,.08),(.28,.18),(.64,.02),(.74,-.28),(.50,-.54),(.18,-.40)],'black',.040)
+        lower_outer.location=(sgn*.22,.20,.78); lower_outer.scale=(sgn,1,1)
+        lower_inner=poly('soft orange lower wing panel '+side,[(.09,.05),(.30,.10),(.52,-.03),(.59,-.24),(.42,-.40),(.20,-.30)],'orange',.045)
+        lower_inner.location=(sgn*.22,.145,.78); lower_inner.scale=(sgn,1,1)
+
+        # larger, simpler dots so they read on mobile and do not look like random crumbs
+        for xx,zz,rr in [(sgn*.88,1.28,.060),(sgn*.76,1.02,.052),(sgn*.67,.62,.055)]:
+            sphere('large clean white wing dot '+side,(xx,.105,zz),rr,'white',6,3,scale=(1,.45,1))
     render('butterfly_avatar',target=(0,0,1.0),h=2.4)
 
 if __name__=='__main__':
