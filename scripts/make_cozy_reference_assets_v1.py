@@ -80,14 +80,27 @@ def grass_base():
     for x,y in [(-.65,.2),(.62,.18)]: sphere('small rock',(x,y,.05),.13,'stone',8,4,scale=(1.25,.85,.65))
 
 def camera(target=(0,0,.8),h=2.1,dist=4.6):
-    bpy.ops.object.light_add(type='AREA', location=(0,-3.7,4.2)); l=bpy.context.object; l.data.energy=450; l.data.size=5
+    # Clean chroma approval render: floor + world color only. Avoid the dark corner wall
+    # that made the v1 contact sheets look dirty and less toy-like.
+    bpy.ops.object.light_add(type='AREA', location=(0,-3.7,4.2)); l=bpy.context.object; l.data.energy=500; l.data.size=5
+    bpy.ops.object.light_add(type='AREA', location=(3,2.8,3.5)); lf=bpy.context.object; lf.data.energy=120; lf.data.size=4
     bpy.ops.object.camera_add(location=(3.0,-4.6,h)); cam=bpy.context.object
     direction=Vector(target)-cam.location; cam.rotation_euler=direction.to_track_quat('-Z','Y').to_euler(); cam.data.lens=58; bpy.context.scene.camera=cam
-    cube('chroma floor',(0,0,-.09),(5,5,.04),'chroma'); cube('chroma wall',(0,2.0,1.7),(5,.04,3.6),'chroma')
+    cube('chroma floor',(0,0,-.09),(5,5,.04),'chroma')
 
 def render(name,target=(0,0,.7),h=2.1):
     camera(target,h); bpy.context.scene.render.engine='BLENDER_EEVEE'; bpy.context.scene.eevee.taa_render_samples=24
-    bpy.context.scene.render.resolution_x=900; bpy.context.scene.render.resolution_y=900; bpy.context.scene.view_settings.view_transform='Standard'; bpy.context.scene.world.color=(.333,.8,.266)
+    bpy.context.scene.render.resolution_x=900; bpy.context.scene.render.resolution_y=900; bpy.context.scene.view_settings.view_transform='Standard'
+    # Force a clean chroma-green world in Blender 4 headless. Without node setup,
+    # EEVEE can render the empty background as dark gray even if scene.world.color is set.
+    if bpy.context.scene.world is None:
+        bpy.context.scene.world = bpy.data.worlds.new('Clean Chroma World')
+    bpy.context.scene.world.color=(.333,.8,.266)
+    bpy.context.scene.world.use_nodes=True
+    bg=bpy.context.scene.world.node_tree.nodes.get('Background')
+    if bg:
+        bg.inputs['Color'].default_value=(.333,.8,.266,1)
+        bg.inputs['Strength'].default_value=.9
     out=os.path.join(ROOT,name); os.makedirs(out,exist_ok=True); bpy.context.scene.render.filepath=os.path.join(out,'perspective.png')
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out,'source.blend')); bpy.ops.render.render(write_still=True)
     for o in bpy.context.scene.objects: o.select_set(False)
@@ -97,65 +110,98 @@ def render(name,target=(0,0,.7),h=2.1):
 
 def rod(name,theme):
     clear(); mats()
-    cyl('long wooden fishing rod',(0,0,.72),.055,2.5,'wood',8,rot=(0,radians(82),0),scale=(1,1,1))
-    cyl('thick handle',(-1.0,0,.62),.14,.58,'wood',8,rot=(0,radians(82),0),scale=(1.2,.8,1),bevel=.02)
-    for x in [-.55,.15,.7]: cyl('gold wrap',(x,0,.68+.05*x),.075,.10,'gold',8,rot=(0,radians(82),0))
-    # reel
-    cyl('round reel',(-.25,-.10,.45),.24,.12,'cream',10,rot=(radians(90),0,0),bevel=.02); cyl('reel center',(-.25,-.18,.45),.08,.08,'wood_dark',8,rot=(radians(90),0,0)); cyl('small crank',(-.05,-.22,.33),.035,.25,'wood_dark',8,rot=(0,radians(55),0))
-    # line and hooks as simple cylinders/cubes
-    cyl('line hanging',(1.10,-.02,.43),.012,.65,'white',6,rot=(0,0,0)); cyl('small ring',(0.62,-.03,.57),.045,.025,'wood_dark',8,rot=(radians(90),0,0)); cyl('small ring 2',(0.05,-.03,.62),.045,.025,'wood_dark',8,rot=(radians(90),0,0))
+    # v2: keep each reference theme, but make the rods read cleaner in thumbnail:
+    # thicker toy proportions, fewer tiny crumbs, bigger lure silhouettes, clearer reel.
+    cyl('main tapered wooden rod',(0,0,.73),.065,2.45,'wood',8,rot=(0,radians(82),0),scale=(1,1,1),bevel=.008)
+    cyl('dark rod tip',(1.08,0,.79),.045,.30,'wood_dark',8,rot=(0,radians(82),0),scale=(1,1,1))
+    cyl('rounded handle grip',(-1.04,0,.62),.17,.62,'wood',8,rot=(0,radians(82),0),scale=(1.25,.86,1),bevel=.03)
+    cyl('dark handle butt',(-1.34,0,.58),.145,.16,'wood_dark',8,rot=(0,radians(82),0),scale=(1.2,.8,1),bevel=.02)
+    for x in [-.62,-.25,.30,.78]:
+        cyl('chunky gold binding',(x,0,.69+.045*x),.083,.085,'gold',8,rot=(0,radians(82),0),bevel=.008)
+    # Larger reel and simple crank, so it reads as fishing gear rather than random beige shape.
+    cyl('round cream reel body',(-.30,-.12,.45),.27,.14,'cream',10,rot=(radians(90),0,0),scale=(1,1,1),bevel=.025)
+    cyl('dark reel hole',(-.30,-.21,.45),.10,.055,'wood_dark',8,rot=(radians(90),0,0))
+    cyl('short reel arm',(-.08,-.22,.34),.038,.30,'wood_dark',8,rot=(0,radians(58),0))
+    sphere('round reel knob',(.04,-.25,.25),.055,'gold',8,4,scale=(1,.75,1))
+    # Shorter line; lures are brought up so they do not look disconnected from the asset.
+    cyl('straight pale fishing line',(1.03,-.02,.47),.012,.52,'white',6,rot=(0,0,0))
+    cyl('front guide ring',(0.62,-.03,.58),.052,.028,'wood_dark',8,rot=(radians(90),0,0))
+    cyl('middle guide ring',(0.05,-.03,.62),.052,.028,'wood_dark',8,rot=(radians(90),0,0))
     if theme=='mushroom':
-        cone('red mushroom cap handle',(-1.31,0,.56),.30,.13,.28,'red',10,rot=(0,radians(82),0),scale=(1,1,.8));
-        for dx,dz in [(-1.42,.63),(-1.28,.70),(-1.18,.55)]: sphere('white mushroom spot',(dx,-.12,dz),.055,'white',6,3)
-        cone('tiny red mushroom lure',(1.1,-.02,.08),.12,.045,.14,'red',8); cyl('tiny stem',(1.1,-.02,-.02),.035,.09,'cream',6)
+        cone('rounded red mushroom handle cap',(-1.36,0,.56),.34,.16,.30,'red',10,rot=(0,radians(82),0),scale=(1,1,.82))
+        cyl('cream mushroom handle stem',(-1.22,0,.59),.09,.22,'cream',8,rot=(0,radians(82),0),scale=(1,.85,1),bevel=.012)
+        for dx,dz in [(-1.48,.64),(-1.34,.72),(-1.18,.57)]: sphere('large clear mushroom spot',(dx,-.13,dz),.060,'white',6,3)
+        cone('mushroom lure cap',(1.03,-.02,.17),.15,.055,.16,'red',8); cyl('mushroom lure stem',(1.03,-.02,.045),.045,.13,'cream',6)
     elif theme=='leaf':
-        leaf_obj('big leaf handle',(-1.32,0,.56),(.65,.65,.65),'green2'); leaf_obj('leaf lure',(1.1,-.02,.05),(.22,.22,.22),'green2')
-        for x,z in [(-.72,.78),(-.05,.76),(.38,.72)]: leaf_obj('small vine leaf',(x,-.03,z),(.16,.16,.16),'green2')
-        cyl('curvy vine wrap',(-.15,-.03,.71),.025,1.35,'green',6,rot=(0,radians(80),0))
+        leaf_obj('large leaf grip guard',(-1.36,0,.58),(.78,.78,.78),'green2')
+        leaf_obj('simple leaf lure',(1.03,-.02,.13),(.30,.30,.30),'green2')
+        for x,z,s in [(-.74,.80,.19),(-.06,.77,.17),(.42,.74,.16)]: leaf_obj('readable vine leaf',(x,-.035,z),(s,s,s),'green2')
+        cyl('green vine wrap along rod',(-.16,-.035,.71),.030,1.28,'green',6,rot=(0,radians(80),0))
     elif theme=='crystal':
-        crystal('pink crystal handle',(-1.32,0,.55),'pink',(.9,.9,1.2)); crystal('pink crystal lure',(1.1,-.02,.08),'pink',(.45,.45,.8))
-        for x,c in [(-.52,'blue'),(-.16,'purple')]: crystal('small crystal accent'+x.__str__(),(x,-.03,.78),c,(.45,.45,.55))
-        cyl('blue wrap',(-.78,0,.62),.085,.12,'blue',8,rot=(0,radians(82),0)); cyl('purple wrap',(-.45,0,.65),.085,.12,'purple',8,rot=(0,radians(82),0))
+        crystal('large pink crystal pommel',(-1.37,0,.56),'pink',(1.05,1.05,1.25))
+        crystal('pink crystal lure',(1.03,-.02,.15),'pink',(.58,.58,.85))
+        for x,c in [(-.56,'blue'),(-.20,'purple')]: crystal('big clear crystal accent'+x.__str__(),(x,-.035,.82),c,(.52,.52,.62))
+        cyl('blue grip band',(-.78,0,.63),.095,.11,'blue',8,rot=(0,radians(82),0),bevel=.006)
+        cyl('purple grip band',(-.44,0,.66),.095,.11,'purple',8,rot=(0,radians(82),0),bevel=.006)
     else:
-        sphere('stone handle cap',(-1.32,0,.55),.25,'stone',8,4,scale=(1.2,.9,1)); sphere('stone lure',(1.1,-.02,.06),.12,'stone',8,4,scale=(1,.8,1))
-        for x in [-.85,-.72,-.60]: cyl('brown rope wrap',(x,0,.62),.09,.06,'brown',8,rot=(0,radians(82),0))
-    render('rod_'+theme,target=(0,0,.55),h=1.7)
+        sphere('faceted stone pommel',(-1.36,0,.57),.28,'stone',8,4,scale=(1.20,.92,1.05))
+        sphere('round stone lure',(1.03,-.02,.12),.14,'stone',8,4,scale=(1,.82,1))
+        for x in [-.92,-.76,-.60]: cyl('thick rope grip wrap',(x,0,.62),.10,.065,'brown',8,rot=(0,radians(82),0),bevel=.004)
+    render('rod_'+theme,target=(-.05,0,.58),h=1.68)
 
 def mailbox(name,theme):
     clear(); mats(); grass_base()
-    cyl('wooden post',(0,0,.45),.16,.9,'wood',8,bevel=.02)
-    cube('cross supports',(0,-.02,.72),(.75,.12,.12),'wood_dark',.02)
+    # v2: stronger toy proportions, cleaner bases/posts, clearer front mail slots.
+    cyl('short rounded wooden post',(0,0,.48),.17,.96,'wood',8,bevel=.025)
+    cube('chunky cross support',(0,-.02,.78),(.82,.13,.13),'wood_dark',.025)
+    cube('small lower brace',(0,-.02,.64),(.48,.11,.10),'wood_dark',.018)
     if theme=='villager':
-        cube('barrel mailbox body',(0,0,1.22),(.95,.62,.62),'wood',.04); cyl('round barrel roof',(0,0,1.55),.34,.98,'wood',10,rot=(0,radians(90),0),scale=(1,.55,1)); cube('front dark slot',(0,-.34,1.34),(.42,.04,.08),'black',.005)
-        cyl('hanging lantern',(.58,-.15,.72),.11,.18,'gold',6); cube('lantern glass',(.58,-.15,.58),(.16,.10,.18),'cream2',.01)
+        cube('warm barrel mailbox box',(0,0,1.24),(.92,.62,.58),'wood',.045)
+        cyl('rounded barrel roof',(0,0,1.55),.34,.94,'wood',10,rot=(0,radians(90),0),scale=(1,.56,1),bevel=.018)
+        cube('large dark mail slot',(0,-.345,1.35),(.44,.05,.08),'black',.006)
+        cyl('simple hanging lantern',(.58,-.18,.86),.10,.16,'gold',6,bevel=.008); cube('warm lantern glass',(.58,-.18,.70),(.16,.10,.20),'cream2',.012)
+        cyl('tiny lantern hanger',(.58,-.18,1.00),.025,.20,'wood_dark',6)
     elif theme=='mushroom':
-        cube('cream box',(0,0,1.25),(.82,.58,.62),'cream',.04); cone('large red mushroom roof',(0,0,1.72),.68,.28,.38,'red',12,scale=(1,.78,1))
-        for x,z in [(-.32,1.78),(.05,1.88),(.36,1.70)]: sphere('white roof dot',(x,-.25,z),.075,'white',6,3)
-        cube('letter flap',(0,-.33,1.18),(.28,.04,.18),'cream2',.01); cube('slot',(0,-.34,1.41),(.38,.04,.07),'black',.004)
+        cube('cream mushroom mailbox body',(0,0,1.23),(.82,.58,.62),'cream',.045)
+        cone('broad red mushroom roof',(0,0,1.68),.72,.30,.34,'red',12,scale=(1,.80,1))
+        for x,z in [(-.38,1.73),(-.04,1.83),(.31,1.70)]: sphere('big clean mushroom roof dot',(x,-.28,z),.085,'white',6,3)
+        cube('front letter flap',(0,-.35,1.16),(.30,.05,.20),'cream2',.012); cube('wide black slot',(0,-.36,1.41),(.40,.045,.075),'black',.004)
     elif theme=='leaf':
-        cube('wood leaf mailbox',(0,0,1.25),(.82,.58,.60),'wood',.035); leaf_obj('front big leaf roof',(-.18,-.03,1.64),(.72,.72,.72),'green2'); leaf_obj('back big leaf roof',(.20,-.02,1.66),(.72,.72,.72),'green')
-        cube('slot',(0,-.34,1.42),(.38,.04,.07),'black',.004); leaf_obj('vine front decoration',(.46,-.35,1.10),(.18,.18,.18),'green2'); sphere('white flower',(.50,-.37,1.27),.055,'white',6,3)
+        cube('warm wood leaf mailbox body',(0,0,1.23),(.84,.58,.60),'wood',.04)
+        leaf_obj('left upright leaf roof',(-.20,-.03,1.67),(.80,.80,.80),'green2')
+        leaf_obj('right upright leaf roof',(.24,-.02,1.68),(.76,.76,.76),'green')
+        cube('wide black slot',(0,-.36,1.40),(.40,.045,.075),'black',.004)
+        leaf_obj('front vine leaf charm',(.43,-.36,1.08),(.22,.22,.22),'green2'); sphere('single white flower dot',(.47,-.38,1.29),.065,'white',6,3)
     elif theme=='crystal':
-        cube('cream crystal mailbox',(0,0,1.22),(.82,.58,.62),'cream',.035); cyl('purple arch trim',(0,-.31,1.33),.36,.08,'purple',10,rot=(radians(90),0,0),scale=(1,.65,1)); crystal('top pink crystal',(0,-.03,1.82),'pink',(.7,.7,.9))
-        for x,c in [(-.62,'purple'),(.62,'blue'),(.46,'pink')]: crystal('base crystal'+x.__str__(),(x,-.20,.25),c,(.75,.75,1.1))
-        cube('letter flap',(0,-.34,1.15),(.28,.04,.18),'cream2',.01); cube('slot',(0,-.35,1.42),(.38,.04,.07),'black',.004)
+        cube('cream crystal mailbox body',(0,0,1.22),(.84,.58,.62),'cream',.04)
+        cyl('bold purple front gem frame',(0,-.325,1.35),.38,.09,'purple',10,rot=(radians(90),0,0),scale=(1,.66,1),bevel=.01)
+        crystal('large top pink crystal',(0,-.03,1.83),'pink',(.82,.82,1.0))
+        for x,c,s in [(-.58,'purple',.85),(.58,'blue',.85),(.36,'pink',.70)]: crystal('clear base crystal'+x.__str__(),(x,-.20,.27),c,(s,s,1.08))
+        cube('front letter flap',(0,-.36,1.13),(.30,.05,.19),'cream2',.012); cube('wide black slot',(0,-.37,1.43),(.36,.045,.070),'black',.004)
     elif theme=='stone':
-        cube('stone block mailbox',(0,0,1.25),(.88,.62,.72),'stone2',.035)
-        for x in [-.30,0,.30]: cube('stone top block',(x,0,1.67),(.28,.64,.20),'stone2',.02)
-        for x,z in [(-.42,1.38),(.42,1.10),(.06,1.48)]: cube('moss patch',(x,-.33,z),(.16,.05,.13),'green',.01)
-        cube('slot',(0,-.35,1.42),(.38,.04,.07),'black',.004); cube('letter flap',(0,-.34,1.16),(.28,.04,.18),'cream2',.01)
+        cube('chunky stone mailbox body',(0,0,1.25),(.90,.62,.72),'stone2',.04)
+        for x in [-.31,0,.31]: cube('separate top stone cap '+str(x),(x,0,1.68),(.29,.66,.21),'stone2',.024)
+        for x,z in [(-.44,1.39),(.42,1.10),(.05,1.51)]: cube('larger moss patch',(x,-.35,z),(.18,.055,.14),'green',.012)
+        cube('wide black slot',(0,-.37,1.42),(.40,.045,.075),'black',.004); cube('front letter flap',(0,-.36,1.15),(.30,.05,.19),'cream2',.012)
     elif theme=='fairy':
-        cube('pink rounded mailbox',(0,0,1.25),(.78,.56,.62),'pink',.04); cyl('cream arch door',(0,-.32,1.28),.30,.06,'cream',10,rot=(radians(90),0,0),scale=(1,.8,1)); crystal('top jewel',(0,-.02,1.78),'pink',(.55,.55,.7))
-        for side,x in [('l',-.52),('r',.52)]:
-            leaf_obj('white wing '+side,(x,-.30,1.32),(.38,.38,.38),'white')
-        cube('slot',(0,-.36,1.43),(.34,.04,.07),'black',.004); sphere('heart-ish pink knob',(0,-.38,1.14),.07,'red',6,3)
+        cube('rounded pink fairy mailbox body',(0,0,1.24),(.80,.56,.62),'pink',.045)
+        cyl('cream round front door',(0,-.33,1.26),.31,.07,'cream',10,rot=(radians(90),0,0),scale=(1,.82,1),bevel=.012)
+        crystal('top pink fairy jewel',(0,-.02,1.78),'pink',(.60,.60,.74))
+        for side,x in [('left',-.55),('right',.55)]: leaf_obj('large white fairy wing '+side,(x,-.31,1.32),(.42,.42,.42),'white')
+        cube('small black slot',(0,-.38,1.43),(.34,.045,.070),'black',.004); sphere('red heart knob',(0,-.40,1.14),.075,'red',6,3,scale=(1,.7,1))
     elif theme=='wizard':
-        cube('purple house box',(0,0,1.22),(.86,.58,.60),'purple',.035); cone('wizard hat roof',(0,0,1.78),.55,.12,.70,'purple',9,scale=(1,.78,1)); cyl('gold hat band',(0,0,1.55),.42,.08,'gold',9,scale=(1,.78,1))
-        star('front gold star',(0,-.36,1.55),.13,'gold'); cube('slot',(0,-.35,1.35),(.35,.04,.07),'black',.004); crystal('purple side crystal',(.55,-.18,.25),'purple',(.55,.55,.9)); star('hanging star',(.42,-.18,.70),.08,'gold')
+        cube('purple wizard mailbox body',(0,0,1.22),(.88,.58,.60),'purple',.04)
+        cone('tall wizard hat roof',(0,0,1.78),.58,.12,.72,'purple',9,scale=(1,.78,1))
+        cyl('clear gold hat band',(0,0,1.55),.44,.085,'gold',9,scale=(1,.78,1),bevel=.006)
+        star('large front gold star',(0,-.37,1.56),.145,'gold')
+        cube('wide black slot',(0,-.37,1.34),(.36,.045,.075),'black',.004)
+        crystal('side purple crystal',(.56,-.18,.28),'purple',(.62,.62,.92)); star('simple hanging star',(.43,-.20,.72),.09,'gold')
     elif theme=='courier':
-        cube('red courier mailbox',(0,0,1.25),(.80,.56,.62),'red',.04); cyl('cream arch door',(0,-.32,1.28),.29,.06,'cream',10,rot=(radians(90),0,0),scale=(1,.8,1)); cube('little red flag',(.30,-.02,1.84),(.06,.06,.35),'wood_dark',.01); cube('flag cloth',(.44,-.02,1.94),(.26,.05,.16),'red',.01)
-        for side,x in [('l',-.52),('r',.52)]: leaf_obj('white wing '+side,(x,-.30,1.32),(.36,.36,.36),'white')
-        cube('letter flap',(0,-.36,1.17),(.28,.04,.18),'cream2',.01); cube('slot',(0,-.36,1.42),(.34,.04,.07),'black',.004)
+        cube('rounded red courier mailbox body',(0,0,1.24),(.82,.56,.62),'red',.045)
+        cyl('cream front envelope door',(0,-.33,1.26),.30,.07,'cream',10,rot=(radians(90),0,0),scale=(1,.82,1),bevel=.012)
+        cube('strong flag pole',(.32,-.02,1.82),(.065,.06,.38),'wood_dark',.012); cube('clear red flag cloth',(.47,-.02,1.95),(.30,.055,.17),'red',.012)
+        for side,x in [('left',-.55),('right',.55)]: leaf_obj('large white courier wing '+side,(x,-.31,1.31),(.40,.40,.40),'white')
+        cube('front envelope flap',(0,-.38,1.16),(.30,.045,.19),'cream2',.012); cube('wide black slot',(0,-.38,1.42),(.35,.045,.070),'black',.004)
     render('mailbox_'+theme,target=(0,0,1.05),h=2.25)
 
 def butterfly():
