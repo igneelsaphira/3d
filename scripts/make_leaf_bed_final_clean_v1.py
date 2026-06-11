@@ -4,12 +4,12 @@ import zipfile
 from pathlib import Path
 from mathutils import Vector
 
-OUT_DIR = Path('/root/leaf_bed_final_clean_v1')
+OUT_DIR = Path('/root/leaf_bed_final_clean_v8')
 OUT_DIR.mkdir(exist_ok=True)
-OUT_BLEND = OUT_DIR / 'leaf_bed_final_clean_v1_model.blend'
-OUT_GLB = OUT_DIR / 'leaf_bed_final_clean_v1_model.glb'
-CONTACT = OUT_DIR / 'leaf_bed_final_clean_v1_contact_sheet.png'
-ZIP_PATH = Path('/root/leaf_bed_final_clean_v1_assets.zip')
+OUT_BLEND = OUT_DIR / 'leaf_bed_final_clean_v8_model.blend'
+OUT_GLB = OUT_DIR / 'leaf_bed_final_clean_v8_model.glb'
+CONTACT = OUT_DIR / 'leaf_bed_final_clean_v8_contact_sheet.png'
+ZIP_PATH = Path('/root/leaf_bed_final_clean_v8_assets.zip')
 CHROMA = '#55cc44'
 
 PALETTE = {
@@ -101,11 +101,11 @@ cube('soft_front_rail', (0, -0.82, 0.315), (1.34, 0.13, 0.12), M['wood_light'], 
 cube('left_rounded_rail', (-0.66, -0.02, 0.35), (0.12, 1.52, 0.16), M['wood'], 0.045)
 cube('right_rounded_rail', (0.66, -0.02, 0.35), (0.12, 1.52, 0.16), M['wood'], 0.045)
 # Clean warm mattress, visible only as tidy border under leaf.
-cube('clean_warm_cream_mattress', (0, -0.04, 0.392), (1.06, 1.38, 0.17), M['cream'], 0.08)
-cube('single_soft_mattress_front_band', (0, -0.70, 0.372), (0.92, 0.030, 0.050), M['cream_shadow'], 0.01)
+cube('clean_warm_cream_mattress', (0, -0.04, 0.365), (1.06, 1.38, 0.17), M['cream'], 0.08)
+cube('single_soft_mattress_front_band', (0, -0.70, 0.345), (0.92, 0.030, 0.045), M['cream_shadow'], 0.01)
 
 # Simple rounded pillow; low and clean, peeking behind blanket.
-bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=6, radius=0.5, location=(0, 0.50, 0.548))
+bpy.ops.mesh.primitive_uv_sphere_add(segments=12, ring_count=6, radius=0.5, location=(0, 0.50, 0.530))
 pillow = bpy.context.object
 pillow.name = 'simple_rounded_cream_pillow'
 pillow.scale = (0.52, 0.22, 0.12)
@@ -178,10 +178,10 @@ leaf = mesh_obj('single_soft_puffy_leaf_blanket', verts, faces, M['leaf'])
 
 # Soft front lip reads as subtle blanket thickness, not a floating piece.
 front_lip = [
-    # Very subtle underside at the front: enough to read as cloth/leaf thickness,
-    # but it follows the mattress edge instead of hovering over it.
-    (-0.32, -0.825, 0.508), (0.32, -0.825, 0.508),
-    (0.10, -0.955, 0.486), (-0.10, -0.955, 0.486)
+    # Very subtle underside at the front: extended a little to the left to cover the
+    # remaining cream mattress speck without changing the whole blanket shape.
+    (-0.52, -0.825, 0.522), (0.32, -0.825, 0.508),
+    (0.10, -0.955, 0.486), (-0.42, -0.955, 0.482)
 ]
 mesh_obj('rounded_leaf_front_blanket_lip', front_lip, [(0,1,2,3)], M['leaf_shadow'])
 
@@ -189,14 +189,25 @@ mesh_obj('rounded_leaf_front_blanket_lip', front_lip, [(0,1,2,3)], M['leaf_shado
 # mattress peeks through the blanket. These are deliberately flat and low-poly: they
 # behave like painted parts of the leaf, not new decorative details.
 front_gap_patch = [
-    # Slightly larger and raised above the cream mattress so the small white triangle
-    # at the front-left edge reads as part of the leaf blanket.
-    (-0.520, -0.900, 0.545),
-    (-0.155, -0.925, 0.545),
-    (-0.235, -0.720, 0.575),
-    (-0.485, -0.745, 0.565),
+    # Tiny raised leaf-colored flap over the front-left mattress peek-through.
+    # Extended one drop toward the center because the remaining white point sits
+    # just to the right of the previous patch.
+    (-0.535, -0.900, 0.565),
+    (-0.020, -0.900, 0.565),
+    (-0.155, -0.700, 0.598),
+    (-0.500, -0.745, 0.588),
 ]
 mesh_obj('leaf_color_patch_front_left_white_speck', front_gap_patch, [(0, 1, 2, 3)], M['leaf'])
+front_left_droplet = [
+    (-0.515, -0.895, 0.545),
+    (-0.285, -0.905, 0.548),
+    (-0.355, -0.955, 0.485),
+    (-0.455, -0.945, 0.495),
+]
+mesh_obj('subtle_leaf_droplet_front_left_cover', front_left_droplet, [(0, 1, 2, 3)], M['leaf'])
+# Tiny raised soft leaf chip: covers the last visible cream point on the front-left.
+# A very shallow bevel makes it read like part of the blanket edge instead of a flat sticker.
+cube('tiny_raised_leaf_chip_front_left', (-0.245, -0.790, 0.565), (0.285, 0.070, 0.014), M['leaf_edge'], 0.010, rot=(0, 0, -0.10))
 rear_gap_patch = [
     (-0.105, 0.205, 0.588),
     (0.065, 0.205, 0.588),
@@ -278,7 +289,7 @@ for name, (loc, scale) in views.items():
     cam.location = loc
     cam.data.ortho_scale = scale
     look_at(cam, (0, -0.08, 0.50))
-    out = OUT_DIR / f'leaf_bed_final_clean_v1_{name.lower()}.png'
+    out = OUT_DIR / f'leaf_bed_final_clean_v8_{name.lower()}.png'
     raw = OUT_DIR / f'_raw_{name.lower()}.png'
     bpy.context.scene.render.filepath = str(raw)
     bpy.ops.render.render(write_still=True)
