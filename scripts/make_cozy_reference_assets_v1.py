@@ -14,6 +14,7 @@ def clear():
 
 def mat(n,c):
     m=bpy.data.materials.new(n); m.use_nodes=True
+    m.diffuse_color=c
     bsdf=m.node_tree.nodes.get('Principled BSDF'); bsdf.inputs['Base Color'].default_value=c; bsdf.inputs['Roughness'].default_value=.9
     M[n]=m; return m
 

@@ -15,6 +15,7 @@ def clear_scene():
 
 def mat(name, color, roughness=0.85):
     m = bpy.data.materials.new(name)
+    m.diffuse_color = color
     m.use_nodes = True
     bsdf = m.node_tree.nodes.get('Principled BSDF')
     bsdf.inputs['Base Color'].default_value = color
