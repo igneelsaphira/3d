@@ -4,6 +4,17 @@ Repositorio de assets 3D low-poly/mobile-friendly para juego social.
 
 ## Asset incluido
 
+### Cozy Fishing Rods / Cañas cozy aprobadas
+
+Set aprobado de tres cañas low-poly cute:
+
+- `assets/cozy_fishing_rods_approved_v1/fairy_rod/model.glb`
+- `assets/cozy_fishing_rods_approved_v1/wizard_rod/model.glb`
+- `assets/cozy_fishing_rods_approved_v1/villager_rod/model.glb`
+
+Cada carpeta incluye `source.blend` editable y `perspective.png` como preview.
+Los scripts para regenerarlas están en `scripts/create_*_rod_blender.py`.
+
 ### Leaf Bed / Camita de hoja
 
 Camita miniatura mágica de bosque/hada, con estructura de madera cálida, colchón crema, almohada simple y una hoja grande como cobertor principal.
